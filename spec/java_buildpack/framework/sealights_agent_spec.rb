@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Cloud Foundry Java Buildpack
-# Copyright 2013-2020 the original author or authors.
+# Copyright 2013-2024 the original author or authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,10 +51,43 @@ describe JavaBuildpack::Framework::SealightsAgent do
     end
 
     context do
-      it 'updates JAVA_OPTS sl.tags' do
+      it 'updates JAVA_OPTS sl.tags with buildpack version number' do
+        allow_any_instance_of(JavaBuildpack::BuildpackVersion)
+          .to receive(:to_hash).and_return({ 'version' => '1234',
+                                             'offline' => false,
+                                             'remote' => 'test-remote',
+                                             'hash' => 'test-hash' })
         component.release
 
-        expect(java_opts).to include('-Dsl.tags=pivotal_cloud_foundry')
+        expect(java_opts).to include('-Dsl.tags=sl-pcf-1234')
+      end
+
+      it 'updates JAVA_OPTS sl.tags with buildpack version number and offline info' do
+        allow_any_instance_of(JavaBuildpack::BuildpackVersion)
+          .to receive(:to_hash).and_return({ 'version' => '1234',
+                                             'offline' => true,
+                                             'remote' => 'test-remote',
+                                             'hash' => 'test-hash' })
+        component.release
+
+        expect(java_opts).to include('-Dsl.tags=sl-pcf-1234\(offline\)')
+      end
+
+      it 'updates JAVA_OPTS sl.tags with version number' do
+        allow_any_instance_of(JavaBuildpack::BuildpackVersion)
+          .to receive(:to_hash).and_return({ 'version' => '1234',
+                                             'remote' => 'test-remote',
+                                             'hash' => 'test-hash' })
+        component.release
+
+        expect(java_opts).to include('-Dsl.tags=sl-pcf-1234')
+      end
+
+      it 'updates JAVA_OPTS sl.tags with information about unknown version number' do
+        allow_any_instance_of(JavaBuildpack::BuildpackVersion).to receive(:to_hash).and_return({})
+        component.release
+
+        expect(java_opts).to include('-Dsl.tags=sl-pcf-v-unknown')
       end
 
       it 'updates JAVA_OPTS sl.buildSessionId' do

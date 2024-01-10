@@ -16,6 +16,7 @@
 # limitations under the License.
 
 require 'java_buildpack/framework'
+require 'java_buildpack/buildpack_version'
 require 'java_buildpack/component/versioned_dependency_component'
 require 'shellwords'
 require 'fileutils'
@@ -51,7 +52,7 @@ module JavaBuildpack
         @droplet.java_opts.add_javaagent(agent)
         credentials = @application.services.find_service(FILTER, TOKEN)['credentials']
         @droplet.java_opts.add_system_property('sl.token', Shellwords.escape(credentials[TOKEN]))
-        @droplet.java_opts.add_system_property('sl.tags', 'pivotal_cloud_foundry')
+        @droplet.java_opts.add_system_property('sl.tags', Shellwords.escape("sl-pcf-#{buildpack_version}"))
 
         # add sl.enableUpgrade system property
         enable_upgrade_value = @configuration[ENABLE_UPGRADE] ? 'true' : 'false'
@@ -94,6 +95,17 @@ module JavaBuildpack
       end
 
       private
+
+      def buildpack_version
+        version_hash = BuildpackVersion.new.to_hash
+        if version_hash.key?('version') && version_hash.key?('offline') && version_hash['offline']
+          version_hash['version'] + '(offline)'
+        elsif version_hash.key?('version')
+          version_hash['version']
+        else
+          'v-unknown'
+        end
+      end
 
       def expand(file, name, target_directory)
         with_timing "Expanding #{name} to #{target_directory.relative_path_from(@droplet.root)}" do
